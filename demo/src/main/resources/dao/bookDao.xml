@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.dao.BookDao">
+    <!-- 此处需要注意的是，由于我们数据库定义的id存储类型为intbig,但是我们的Entity中Id是Long -->
+    <!-- 前面的两种方式插入没问题，此处报了数据库类型异常 -->
+    <!-- 所以数据库的ID类型改为了Varchar -->
+    <resultMap id="bookMap" type="com.example.demo.entity.Book">
+        <id column="book_id" property="bookId" jdbcType="BIGINT" />
+        <result column="book_name" property="bookName" jdbcType="VARCHAR" />
+        <result column="book_nbr" property="bookNbr" jdbcType="VARCHAR" />
+        <result column="uptime" property="uptime" jdbcType="TIMESTAMP" />
+        <result column="status" property="status" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <sql id="base_column">
+        book_id,book_name,book_nbr,uptime,status
+    </sql>
+
+    <insert id="add" parameterType="com.example.demo.entity.Book" >
+        INSERT INTO
+        book(
+        <include refid="base_column" />
+        )
+        VALUES
+        (#{bookId}, #{bookName}, #{bookNbr}, #{uptime}, "1")
+    </insert>
+
+    <select id="findBookList" parameterType="com.example.demo.entity.Book" resultMap="bookMap">
+        select
+        <include refid="base_column"/>
+        from book
+        WHERE status = "1"
+        <if test="bookId != null">
+            AND book_id = #{bookId,jdbcType=BIGINT}
+        </if>
+        <if test="bookName != null and bookName != ''">
+            AND book_name LIKE "%"#{bookName,jdbcType=VARCHAR}"%"
+        </if>
+        <if test="bookNbr != null and bookNbr != ''">
+            AND book_nbr LIKE "%"#{bookNbr,jdbcType=VARCHAR}"%"
+        </if>
+        ORDER BY book_id
+    </select>
+
+    <select id="findBookById" parameterType="java.lang.Long" resultType="com.example.demo.entity.Book">
+        select
+        <include refid="base_column"/>
+        from book
+        WHERE status = "1"
+        AND book_id = #{bookId,jdbcType=BIGINT}
+    </select>
+
+
+    <update id="update" parameterType="com.example.demo.entity.Book">
+        UPDATE book
+        <set>
+            <if test="bookName != null and bookName != ''">
+                book_name = #{bookName,jdbcType=VARCHAR},
+            </if>
+            <if test="bookNbr != null and bookName != ''">
+                book_nbr = #{bookNbr,jdbcType=VARCHAR},
+            </if>
+            <if test="uptime != null">
+                uptime = #{uptime,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        WHERE book_id = #{bookId,jdbcType=BIGINT}
+    </update>
+
+    <update id="delete" parameterType="java.lang.Long">
+        UPDATE book
+        set status = "3"
+        WHERE book_id = #{bookId,jdbcType=BIGINT}
+    </update>
+
+    <update id="batchDelete" parameterType="java.util.List">
+        update book
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="status = case" suffix="end,">
+                <foreach collection="list" item="item" index="index">
+                    when book_id=#{item.bookId} then #{item.status,jdbcType=VARCHAR}
+                </foreach>
+            </trim>
+        </trim>
+        where
+        book_id in
+        <foreach item="item" collection="list" separator="," open="(" close=")" index="index">
+            #{item.bookId,jdbcType=BIGINT}
+        </foreach>
+    </update>
+
+</mapper>
